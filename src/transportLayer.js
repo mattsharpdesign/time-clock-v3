@@ -7,7 +7,7 @@ export default {
       employees = []
     }
     const index = employees.findIndex(e => e.id === id)
-    if (index > 0) {
+    if (index > -1) {
       employees.splice(index, 1)
       localStorage.setItem('employees', JSON.stringify(employees))
       return new Promise(resolve => {
@@ -19,18 +19,23 @@ export default {
   },
 
   saveEmployee: json => {
-    const { id, name } = json
     let employees = localStorage.getItem('employees')
     if (employees) {
       employees = JSON.parse(employees)
     } else {
       employees = []
     }
-    const e = { id, name }
-    employees.push(e)
+    let index = employees.findIndex(e => e.id === json.id)
+    if (index > -1) {
+      employees[index] = { ...employees[index], ...json }
+    } else {
+      employees.push(json)
+    }
+    // const updatedEmployee = { ...employee, ...json }
+    // const e = { id, name }
     localStorage.setItem('employees', JSON.stringify(employees))
     return new Promise(resolve => {
-      setTimeout(resolve, 1500, 'saved')
+      setTimeout(resolve, 1000, 'saved')
     })
   }
 }

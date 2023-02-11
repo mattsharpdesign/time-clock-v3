@@ -1,4 +1,4 @@
-import { makeAutoObservable, runInAction } from 'mobx'
+import { makeAutoObservable, reaction, runInAction } from 'mobx'
 import { simpleId } from './simpleId'
 
 export class EmployeeStore {
@@ -45,6 +45,7 @@ export class EmployeeStore {
 
   removeEmployee(employee) {
     this.employees.splice(this.employees.indexOf(employee), 1)
+    employee.dispose()
   }
 }
 
@@ -52,20 +53,50 @@ class Employee {
   store = null
   id = null
   name = ''
+  profilePicUrl = ''
   isSaving = false
   isDeleting = false
+  saveHandler = null
+  timeoutId = null
 
   constructor(store, id = simpleId()) {
     makeAutoObservable(this, {
       store: false,
       id: false,
+      saveHandler: false,
+      timeoutId: false,
+      dispose: false,
     })
+
     this.store = store
     this.id = id
+
+    this.saveHandler = reaction(
+      () => this.asJson,
+      json => {
+        if (typeof this.timeoutId === 'number') {
+          clearTimeout(this.timeoutId)
+        }
+        this.timeoutId = setTimeout(() => {
+          console.log('saving', json)
+          this.save()
+          // this.isSaving = true
+          // this.store.transportLayer.saveEmployee(json)
+        }, 2000)
+      }
+    )
+
+    this.watchProfilePic = reaction(
+      () => this.profilePicUrl,
+      pic => {
+        console.log('pic changed')
+      }
+    )
   }
 
   updateFromJson(json) {
     this.name = json.name
+    this.profilePicUrl = json.profilePicUrl
   }
 
   save() {
@@ -87,10 +118,23 @@ class Employee {
     })
   }
 
+  dispose() {
+    this.saveHandler()
+  }
+
   get asJson() {
     return {
       id: this.id,
       name: this.name,
+      profilePicUrl: this.profilePicUrl,
     }
+  }
+
+  setName(name) {
+    this.name = name
+  }
+
+  setProfilePicUrl(url) {
+    this.profilePicUrl = url
   }
 }

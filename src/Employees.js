@@ -1,7 +1,7 @@
-import { useContext, useState } from "react";
+import { useContext, useRef, useState } from "react";
 import { observer } from 'mobx-react-lite'
 import { EmployeeStoreContext } from "./EmployeeStoreContext";
-
+import profilePlaceholder from './profile_placeholder.png'
 
 export default function Employees() {
   
@@ -39,6 +39,7 @@ const Employee = observer(({ employee }) => {
 
   return <div>
     <h4 onClick={() => setExpanded(!isExpanded)}>
+      <img src={employee.profilePicUrl || profilePlaceholder} width="80" style={{ borderRadius: 40}} />
       {employee.name}
       {employee.isSaving && <small>Saving...</small>}
     </h4>
@@ -46,23 +47,38 @@ const Employee = observer(({ employee }) => {
 })
 
 const ExpandedEmployee = observer(({ employee, onCancel }) => {
-  const [name, setName] = useState(employee.name)
-  function handleSubmit(e) {
-    e.preventDefault()
-    employee.updateFromJson({ name })
-    employee.save()
+
+  const imageInputRef = useRef(null)
+
+  function handleFileSelection(e) {
+    const file = e.target.files[0]
+    var reader = new FileReader()
+    reader.onloadend = function() {
+      employee.setProfilePicUrl(reader.result)
+    }
+    reader.readAsDataURL(file)
   }
 
-  function isDirty() {
-    return name !== employee.name
-  }
-
-  return <form onSubmit={handleSubmit}>
-    <input type="text" value={name} onInput={e => setName(e.target.value)} />
-    <button disabled={!isDirty()}>{!isDirty() ? 'Saved' : employee.isSaving ? 'Saving' : 'Save'}</button>
-    <button type="button" onClick={() => employee.delete()}>
-      {employee.isDeleting ? 'Please wait...' : 'Delete'}
-    </button>
-    <button type="button" onClick={onCancel}>Cancel</button>
-  </form>
+  return <div className="form">
+    <input
+      type="file"
+      accept="image/*"
+      capture="user"
+      hidden
+      onChange={e => handleFileSelection(e)}
+      ref={imageInputRef}
+    />
+    <img
+      src={employee.profilePicUrl || profilePlaceholder}
+      width="100"
+      onClick={() => imageInputRef.current.click()}
+    />
+    <input type="text" value={employee.name} onInput={e => employee.setName(e.target.value)} />
+    <div>
+      <button type="button" onClick={() => employee.delete()}>
+        {employee.isDeleting ? 'Please wait...' : 'Delete'}
+      </button>
+      <button type="button" onClick={onCancel}>Done</button>
+    </div>
+  </div>
 })
