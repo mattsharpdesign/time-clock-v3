@@ -35,16 +35,34 @@ const EmployeeList = observer(() => {
 const Employee = observer(({ employee }) => {
   const [isExpanded, setExpanded] = useState(false)
 
+  if (isExpanded) return <ExpandedEmployee employee={employee} onCancel={() => setExpanded(false)} />
+
   return <div>
     <h4 onClick={() => setExpanded(!isExpanded)}>
       {employee.name}
       {employee.isSaving && <small>Saving...</small>}
     </h4>
-    {isExpanded && <div>
-      <em>{employee.id}</em>
-      <button type="button" onClick={() => employee.delete()}>
-        {employee.isDeleting ? 'Please wait...' : 'Delete'}
-      </button>
-    </div>}
   </div>
+})
+
+const ExpandedEmployee = observer(({ employee, onCancel }) => {
+  const [name, setName] = useState(employee.name)
+  function handleSubmit(e) {
+    e.preventDefault()
+    employee.updateFromJson({ name })
+    employee.save()
+  }
+
+  function isDirty() {
+    return name !== employee.name
+  }
+
+  return <form onSubmit={handleSubmit}>
+    <input type="text" value={name} onInput={e => setName(e.target.value)} />
+    <button disabled={!isDirty()}>{!isDirty() ? 'Saved' : employee.isSaving ? 'Saving' : 'Save'}</button>
+    <button type="button" onClick={() => employee.delete()}>
+      {employee.isDeleting ? 'Please wait...' : 'Delete'}
+    </button>
+    <button type="button" onClick={onCancel}>Cancel</button>
+  </form>
 })
